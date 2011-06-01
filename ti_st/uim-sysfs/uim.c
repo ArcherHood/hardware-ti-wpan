@@ -44,6 +44,18 @@ bdaddr_t *bd_addr;
 /* File descriptor for the UART device*/
 int dev_fd;
 
+static inline void cleanup(int failed)
+{
+	if (dev_fd == -1)
+		return;
+
+	UIM_DBG("%s", __func__);
+
+	close(dev_fd);
+	dev_fd = -1;
+	/* unused failed for future reference */
+}
+
 /*****************************************************************************/
 #ifdef UIM_DEBUG
 /*  Function to Read the firmware version
@@ -392,6 +404,11 @@ int st_uart_config(unsigned char install)
 		close(fd);
 		sscanf((const char*)buf, "%u", &flow_ctrl);
 
+		if (dev_fd != -1) {
+			UIM_ERR("opening %s, while already open", uart_dev_name);
+			cleanup(-1);
+		}
+
 		dev_fd = open((const char*) uart_dev_name, O_RDWR);
 		if (dev_fd < 0) {
 			UIM_ERR(" Can't open %s", uart_dev_name);
@@ -403,7 +420,7 @@ int st_uart_config(unsigned char install)
 		 */
 		if (set_baud_rate() < 0) {
 			UIM_ERR(" set_baudrate() failed");
-			close(dev_fd);
+			cleanup(-1);
 			return -1;
 		}
 
@@ -425,13 +442,13 @@ int st_uart_config(unsigned char install)
 			len = write(dev_fd, &cmd, sizeof(cmd));
 			if (len < 0) {
 				UIM_ERR(" Failed to write speed-set command");
-				close(dev_fd);
+				cleanup(-1);
 				return -1;
 			}
 
 			/* Read the response for the Change speed command */
 			if (read_command_complete(dev_fd, HCI_HDR_OPCODE) < 0) {
-				close(dev_fd);
+				cleanup(-1);
 				return -1;
 			}
 
@@ -440,7 +457,7 @@ int st_uart_config(unsigned char install)
 			/* Set the actual custom baud rate at the host side */
 			if (set_custom_baud_rate(cust_baud_rate, flow_ctrl) < 0) {
 				UIM_ERR(" set_custom_baud_rate() failed");
-				close(dev_fd);
+				cleanup(-1);
 				return -1;
 			}
 
@@ -461,13 +478,13 @@ int st_uart_config(unsigned char install)
 				len = write(dev_fd, &addr_cmd, sizeof(addr_cmd));
 				if (len < 0) {
 					UIM_ERR(" Failed to write BD address command");
-					close(dev_fd);
+					cleanup(-1);
 					return -1;
 				}
 
 				/* Read the response for the change BD address command */
 				if (read_command_complete(dev_fd, WRITE_BD_ADDR_OPCODE) < 0) {
-					close(dev_fd);
+					cleanup(-1);
 					return -1;
 				}
 
@@ -484,7 +501,7 @@ int st_uart_config(unsigned char install)
 		ldisc = 22;
 		if (ioctl(dev_fd, TIOCSETD, &ldisc) < 0) {
 			UIM_ERR(" Can't set line discipline");
-			close(dev_fd);
+			cleanup(-1);
 			return -1;
 		}
 		UIM_DBG(" Installed N_TI_WL Line displine");
@@ -493,7 +510,8 @@ int st_uart_config(unsigned char install)
 		UIM_DBG(" Un-Installed N_TI_WL Line displine");
 		/* UNINSTALL_N_TI_WL - When the Signal is received from KIM */
 		/* closing UART fd */
-		close(dev_fd);
+		cleanup(0);
+		dev_fd = -1;
 	}
 	return 0;
 }
