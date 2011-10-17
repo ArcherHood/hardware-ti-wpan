@@ -1,10 +1,3 @@
-/******************************************************************************\
-##                                                                            *
-## Unpublished Proprietary and Confidential Information of Texas Instruments  *
-## Israel Ltd. Do Not Disclose.                                               *
-## Copyright 2008 Texas Instruments Israel Ltd.                               *
-## All rights reserved. All unpublished rights reserved.                      *
-##                                                                            *
 /*
  * TI's FM Stack
  *

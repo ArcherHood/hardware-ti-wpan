@@ -1,6 +1,3 @@
-/******************************************************************************\
-##                                                                            *
-## Unpublished Proprietary and Confidential Information of Texas Instruments  *
 /*
  * TI's FM Stack
  *

@@ -1,7 +1,3 @@
-/******************************************************************************\
-##                                                                            *
-## Unpublished Proprietary and Confidential Information of Texas Instruments  *
-## Israel Ltd. Do Not Disclose.                                               *
 /*
  * TI's FM Stack
  *
