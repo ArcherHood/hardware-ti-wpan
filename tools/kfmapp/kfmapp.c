@@ -75,13 +75,18 @@ void fmapp_display_tx_menu(void)
 {
    printf("Available FM TX Commands:\n");
    printf("f <freq> tune to freq(in MHz)\n");
-/*   printf("gf get frequency(MHz)\n");
-   printf("e <val> set deemphasis filter value (1 - 2)\n");
-   printf("ge get deemphasis filter\n");
+   printf("gf get frequency(MHz)\n");
+   printf("e <val> set pre-emphasis filter value"
+           "(0 = OFF, 1 = 50 usec and 2 = 75 usec)\n");
+/*   printf("ge get pre-emphasis filter\n");*/
    printf("p <val> set FM TX powerlevel (91 - 122)\n");
-   printf("gp get deemphasis filter\n");
+/*   printf("gp get deemphasis filter\n");
    printf("i <val> set FM TX antenna impedance value (0 = 50, 1 = 200 and 2 = 500)\n");
-   printf("gi get FM TX antenna impedance value\n"); */
+   printf("gi get FM TX antenna impedance value\n");*/
+   printf("1 to set RDS Radio Text\n");
+   printf("2 to set RDS Radio PS Name\n");
+   printf("3 <value> to set RDS Radio PI code\n");
+   printf("4 <value> to set RDS Radio PTY\n");
 }
 void fmapp_display_rx_menu(void)
 {
@@ -121,81 +126,82 @@ void fmapp_display_rx_menu(void)
 }
 int fmapp_get_tx_ant_imp(void)
 {
-	struct v4l2_control vctrl;
-	int res;
+    struct v4l2_control vctrl;
+    int res;
 
-	vctrl.id = V4L2_CID_TUNE_ANTENNA_CAPACITOR;
+    vctrl.id = V4L2_CID_TUNE_ANTENNA_CAPACITOR;
 
-	res = ioctl(g_radio_fd,VIDIOC_G_CTRL,&vctrl);
-	if(res < 0)
-	{
-		printf("Failed to get FM Tx antenna impedence value\n");
-		return res;
-	}
+    res = ioctl(g_radio_fd,VIDIOC_G_CTRL,&vctrl);
+    if(res < 0)
+    {
+        printf("Failed to get FM Tx antenna impedence value\n");
+        return res;
+    }
 
-	printf("FM Tx antenna impedence value is --> %d\n",vctrl.value);
-	return 0;
+    printf("FM Tx antenna impedence value is --> %d\n",vctrl.value);
+    return 0;
 }
 
 int fmapp_get_tx_power_level(void)
 {
-	struct v4l2_control vctrl;
-	int res;
+    struct v4l2_control vctrl;
+    int res;
 
-	vctrl.id = V4L2_CID_TUNE_POWER_LEVEL;
+    vctrl.id = V4L2_CID_TUNE_POWER_LEVEL;
 
-	res = ioctl(g_radio_fd,VIDIOC_G_CTRL,&vctrl);
-	if(res < 0)
-	{
-		printf("Failed to get FM Tx power level\n");
-		return res;
-	}
+    res = ioctl(g_radio_fd,VIDIOC_G_CTRL,&vctrl);
+    if(res < 0)
+    {
+        printf("Failed to get FM Tx power level\n");
+        return res;
+    }
 
-	printf("FM Tx Power level is --> %d\n",vctrl.value);
-	return 0;
+    printf("FM Tx Power level is --> %d\n",vctrl.value);
+    return 0;
 }
 int fmapp_get_premphasis_filter_mode(void)
 {
-	struct v4l2_control vctrl;
-	int res;
+    struct v4l2_control vctrl;
+    int res;
 
-	vctrl.id = V4L2_CID_TUNE_PREEMPHASIS;
+    vctrl.id = V4L2_CID_TUNE_PREEMPHASIS;
 
-	res = ioctl(g_radio_fd,VIDIOC_G_CTRL,&vctrl);
-	if(res < 0)
-	{
-		printf("Failed to get preemphasis filter val\n");
-		return res;
-	}
+    res = ioctl(g_radio_fd,VIDIOC_G_CTRL,&vctrl);
+    if(res < 0)
+    {
+        printf("Failed to get preemphasis filter val\n");
+        return res;
+    }
 
-	printf("Preemphasis filter val is --> %d\n",vctrl.value);
-	return 0;
+    printf("Preemphasis filter val is --> %d\n",vctrl.value);
+    return 0;
 }
 int fmapp_get_tx_frequency(void)
 {
-	struct v4l2_frequency vf;
-	struct v4l2_modulator vm;
-	int res, div;
+    struct v4l2_frequency vf;
+    struct v4l2_modulator vm;
+    int res, div;
 
-	vm.index = 0;
-	res = ioctl(g_radio_fd, VIDIOC_G_MODULATOR, &vm);
-	if(res < 0)
-   {
-       printf("Failed to get modulator capabilities\n");
-       return res;
-   }
+    vm.index = 0;
+    res = ioctl(g_radio_fd, VIDIOC_G_MODULATOR, &vm);
+    if(res < 0)
+    {
+        printf("Failed to get modulator capabilities\n");
+        return res;
+    }
 
-   res = ioctl(g_radio_fd, VIDIOC_G_FREQUENCY,&vf);
-   if(res < 0)
-   {
-     printf("Failed to read current frequency\n");
-     return res;
-   }
+    res = ioctl(g_radio_fd, VIDIOC_G_FREQUENCY,&vf);
+    if(res < 0)
+    {
+        printf("Failed to read current frequency\n");
+        return res;
+    }
 
-   div = (vm.capability & V4L2_TUNER_CAP_LOW) ? 1000 : 1;
+    div = (vm.capability & V4L2_TUNER_CAP_LOW) ? 1000 : 1;
 
-   printf("Tuned to frequency %3.2f MHz \n",vf.frequency / ( 16.0 * div));
-   return 0;
+    printf("Transmitting at Frequency %3.2f MHz\n",vf.frequency /
+            ( 16000.0 * div));
+    return 0;
 }
 int fmapp_get_rx_frequency(void)
 {
@@ -224,72 +230,204 @@ int fmapp_get_rx_frequency(void)
    return 0;
 }
 
+int fmapp_set_tx_rds_radio_text(void)
+{
+    struct v4l2_ext_controls_kfmapp vec;
+    struct v4l2_ext_control_kfmapp vctrls;
+    int res;
+    char rds_text[100];
+
+    vec.ctrl_class = V4L2_CTRL_CLASS_FM_TX;
+    vec.count = 1;
+    vctrls.id = V4L2_CID_RDS_TX_RADIO_TEXT;
+    printf("Enter RDS text to transmit\n");
+    scanf("%s", rds_text);
+    vctrls.string = rds_text;
+    vctrls.size = strlen(rds_text);
+    vec.controls = &vctrls;
+
+    printf("Entered RDS text is - %s\n",vctrls.string);
+    res = ioctl(g_radio_fd, VIDIOC_S_EXT_CTRLS, &vec);
+    if(res < 0)
+    {
+        printf("Failed to set FM Tx RDS Radio text\n");
+        return res;
+    }
+
+    printf("FM Modulator RDS Radio text is set and transmitted\n");
+
+    return res;
+}
+
+int fmapp_set_tx_rds_radio_ps_name(void)
+{
+    struct v4l2_ext_controls_kfmapp vec;
+    struct v4l2_ext_control_kfmapp vctrls;
+    int res;
+    char rds_text[100];
+
+    vec.ctrl_class = V4L2_CTRL_CLASS_FM_TX;
+    vec.count = 1;
+    vctrls.id = V4L2_CID_RDS_TX_PS_NAME;
+    printf("Enter RDS PS Name to transmit\n");
+    scanf("%s", rds_text);
+    vctrls.string = rds_text;
+    vctrls.size = strlen(rds_text);
+    vec.controls = &vctrls;
+
+    printf("Entered RDS text is - %s\n",vctrls.string);
+    res = ioctl(g_radio_fd, VIDIOC_S_EXT_CTRLS, &vec);
+    if(res < 0)
+    {
+        printf("Failed to set FM Tx RDS Radio PS Name\n");
+        return res;
+    }
+
+    printf("FM Modulator RDS Radio PS Name set and transmitted\n");
+
+    return res;
+}
+
+int fmapp_set_tx_rds_radio_pi_code(char *cmd)
+{
+        struct v4l2_ext_controls_kfmapp vec;
+        struct v4l2_ext_control_kfmapp vctrls;
+    int user_val;
+    int res;
+
+    sscanf(cmd, "%d", &user_val);
+
+        vec.ctrl_class = V4L2_CTRL_CLASS_FM_TX;
+        vec.count = 1;
+        vctrls.id = V4L2_CID_RDS_TX_PI;
+        vctrls.value = user_val;
+        vctrls.size = 0;
+        vec.controls = &vctrls;
+
+        res = ioctl(g_radio_fd, VIDIOC_S_EXT_CTRLS, &vec);
+        if(res < 0)
+        {
+                printf("Failed to set FM Tx RDS PI Code\n");
+                return res;
+        }
+
+        printf("Setting FM Tx RDS PI Code is Succesful\n");
+
+        return res;
+
+}
+
+int fmapp_set_tx_rds_radio_pty(char *cmd)
+{
+        struct v4l2_ext_controls_kfmapp vec;
+        struct v4l2_ext_control_kfmapp vctrls;
+    int user_val;
+    int res;
+
+    sscanf(cmd, "%d", &user_val);
+
+        vec.ctrl_class = V4L2_CTRL_CLASS_FM_TX;
+        vec.count = 1;
+        vctrls.id = V4L2_CID_RDS_TX_PTY;
+        vctrls.value = user_val;
+        vctrls.size = 0;
+        vec.controls = &vctrls;
+
+        res = ioctl(g_radio_fd, VIDIOC_S_EXT_CTRLS, &vec);
+        if(res < 0)
+        {
+                printf("Failed to set FM Tx RDS PTY\n");
+                return res;
+        }
+
+        printf("Setting FM Tx RDS PTY is Succesful\n");
+
+        return res;
+
+}
 int fmapp_set_tx_ant_imp(char *cmd)
 {
-	int user_val;
-	struct v4l2_control vctrl;
-	int res;
+    int user_val;
+    struct v4l2_control vctrl;
+    int res;
 
-	sscanf(cmd, "%d", &user_val);
+    sscanf(cmd, "%d", &user_val);
 
-	vctrl.id = V4L2_CID_TUNE_ANTENNA_CAPACITOR;
-	vctrl.value = user_val;
-	res = ioctl(g_radio_fd,VIDIOC_S_CTRL,&vctrl);
-	if(res < 0)
-	{
-		printf("Failed to set FM Tx antenna impedence value\n");
-		return res;
-	}
+    vctrl.id = V4L2_CID_TUNE_ANTENNA_CAPACITOR;
+    vctrl.value = user_val;
+    res = ioctl(g_radio_fd,VIDIOC_S_CTRL,&vctrl);
+    if(res < 0)
+    {
+        printf("Failed to set FM Tx antenna impedence value\n");
+        return res;
+    }
 
-	printf("Setting FM Tx antenna impedence value to ---> %d\n",vctrl.value);
-	return 0;
+    printf("Setting FM Tx antenna impedence value to ---> %d\n",vctrl.value);
+    return 0;
 }
 
 int fmapp_set_tx_power_level(char *cmd)
 {
-	int user_val;
-	struct v4l2_control vctrl;
-	int res;
+        struct v4l2_ext_controls_kfmapp vec;
+        struct v4l2_ext_control_kfmapp vctrls;
+    int user_val;
+    int res;
 
-	sscanf(cmd, "%d", &user_val);
+    sscanf(cmd, "%d", &user_val);
 
-	vctrl.id = V4L2_CID_TUNE_POWER_LEVEL;
-	vctrl.value = user_val;
-	res = ioctl(g_radio_fd,VIDIOC_S_CTRL,&vctrl);
-	if(res < 0)
-	{
-		printf("Failed to set FM Tx power level\n");
-		return res;
-	}
+        vec.ctrl_class = V4L2_CTRL_CLASS_FM_TX;
+        vec.count = 1;
+        vctrls.id = V4L2_CID_TUNE_POWER_LEVEL;
+        vctrls.value = user_val;
+        vctrls.size = 0;
+        vec.controls = &vctrls;
 
-	printf("Setting FM Tx Power level to ---> %d\n",vctrl.value);
-	return 0;
+        res = ioctl(g_radio_fd, VIDIOC_S_EXT_CTRLS, &vec);
+        if(res < 0)
+        {
+                printf("Failed to set FM Tx power level\n");
+                return res;
+        }
+
+        printf("Setting FM Tx Power level to ---> %d\n", vctrls.value);
+
+        return res;
+
 }
 int fmapp_set_premphasis_filter_mode(char *cmd)
 {
-	int user_val;
-	struct v4l2_control vctrl;
-	int res;
+        struct v4l2_ext_controls_kfmapp vec;
+        struct v4l2_ext_control_kfmapp vctrls;
+    int user_val;
+    int res;
 
-	sscanf(cmd, "%d", &user_val);
+    sscanf(cmd, "%d", &user_val);
 
-	vctrl.id = V4L2_CID_TUNE_PREEMPHASIS;
-	vctrl.value = user_val;
-	res = ioctl(g_radio_fd,VIDIOC_S_CTRL,&vctrl);
-	if(res < 0)
-	{
-		printf("Failed to set preemphasis filter val\n");
-		return res;
-	}
+        vec.ctrl_class = V4L2_CTRL_CLASS_FM_TX;
+        vec.count = 1;
+        vctrls.id = V4L2_CID_TUNE_PREEMPHASIS;
+        vctrls.value = user_val;
+        vctrls.size = 0;
+        vec.controls = &vctrls;
 
-	printf("Setting preemphasis filter val success\n");
-	return 0;
+        res = ioctl(g_radio_fd, VIDIOC_S_EXT_CTRLS, &vec);
+        if(res < 0)
+        {
+                printf("Failed to set preemphasis filter val\n");
+                return res;
+        }
+
+        printf("Setting preemphasis filter val success\n");
+
+        return res;
+
 }
+
 int fmapp_set_tx_frequency(char *cmd)
 {
    float user_freq;
    struct v4l2_frequency vf;
-   struct v4l2_tuner vm;
+   struct v4l2_modulator vm;
    int res, div;
 
    sscanf(cmd, "%f", &user_freq);
@@ -298,8 +436,8 @@ int fmapp_set_tx_frequency(char *cmd)
    res = ioctl(g_radio_fd, VIDIOC_G_MODULATOR, &vm);
    if(res < 0)
    {
-	   printf("Failed to get modulator capabilities\n");
-	   return res;
+       printf("Failed to get modulator capabilities\n");
+       return res;
    }
 
    vf.tuner = 0;
@@ -307,15 +445,16 @@ int fmapp_set_tx_frequency(char *cmd)
 
    div = (vm.capability & V4L2_TUNER_CAP_LOW) ? 1000 : 1;
    if (div == 1)
-	   vf.frequency /= 1000;
+       vf.frequency /= 1000;
 
    res = ioctl(g_radio_fd, VIDIOC_S_FREQUENCY, &vf);
    if(res < 0)
    {
-	   printf("Failed to set frequency %f\n",user_freq);
-	   return res;
+       printf("Failed to set frequency %f\n",user_freq);
+       return res;
    }
-   printf("Tuned to frequency %3.2f MHz\n", vf.frequency / (16.0 * div));
+   printf("Started Transmitting at %3.2f MHz Frequency\n", vf.frequency /
+           (16.0 * div));
 
    return res;
 }
@@ -347,13 +486,13 @@ int fmapp_set_rx_frequency(char *cmd)
 
    div = (vt.capability & V4L2_TUNER_CAP_LOW) ? 1000 : 1;
    if (div == 1)
-	vf.frequency /= 1000;
+    vf.frequency /= 1000;
 
    if(vf.frequency < vt.rangelow || vf.frequency > vt.rangehigh){
-	printf("Failed to set frequency: Frequency is not in range"
-		"(%3.2f MHz to %3.2f MHz)\n", (vt.rangelow/(16.0 * div)),
-		(vt.rangehigh/(16.0 * div)));
-	return -EINVAL;
+    printf("Failed to set frequency: Frequency is not in range"
+        "(%3.2f MHz to %3.2f MHz)\n", (vt.rangelow/(16.0 * div)),
+        (vt.rangehigh/(16.0 * div)));
+    return -EINVAL;
    }
 
    res = ioctl(g_radio_fd, VIDIOC_S_FREQUENCY, &vf);
@@ -518,135 +657,135 @@ int fmapp_rx_seek(int seek_direction)
 }
 int fmapp_start_audio()
 {
-	int err;
+    int err;
 
-	snd_pcm_sw_params_alloca(&swparams);
+    snd_pcm_sw_params_alloca(&swparams);
 
-	if (fm_aud_enable == 0){
-		/* open alsa pcm device for playback */
-		if ((err = snd_pcm_open(&phandle, pdevice,
-				SND_PCM_STREAM_PLAYBACK, 0)) < 0) {
-			printf("Playback open error: %s\n", snd_strerror(err));
-			exit(EXIT_FAILURE);
-		}
-		/* open alsa pcm device for capture */
-		if ((err = snd_pcm_open(&chandle, cdevice,
-				SND_PCM_STREAM_CAPTURE, 0)) < 0) {
-			printf("Capture open error: %s\n", snd_strerror(err));
-			exit(EXIT_FAILURE);
-		}
+    if (fm_aud_enable == 0){
+        /* open alsa pcm device for playback */
+        if ((err = snd_pcm_open(&phandle, pdevice,
+                SND_PCM_STREAM_PLAYBACK, 0)) < 0) {
+            printf("Playback open error: %s\n", snd_strerror(err));
+            exit(EXIT_FAILURE);
+        }
+        /* open alsa pcm device for capture */
+        if ((err = snd_pcm_open(&chandle, cdevice,
+                SND_PCM_STREAM_CAPTURE, 0)) < 0) {
+            printf("Capture open error: %s\n", snd_strerror(err));
+            exit(EXIT_FAILURE);
+        }
 
-		/* set hw params for alsa device
-		 * this hw params indicate the format, number of bits, rate,
-		 * number of channels, etc.
-		 */
-		if ((err = snd_pcm_set_params(phandle, SND_PCM_FORMAT_S32_LE,
-				SND_PCM_ACCESS_RW_INTERLEAVED, 2, 48000, 0,
-				15000000)) < 0) { /* 0.5sec */
-			printf("Playback open error: %s\n", snd_strerror(err));
-			exit(EXIT_FAILURE);
-		}
+        /* set hw params for alsa device
+         * this hw params indicate the format, number of bits, rate,
+         * number of channels, etc.
+         */
+        if ((err = snd_pcm_set_params(phandle, SND_PCM_FORMAT_S32_LE,
+                SND_PCM_ACCESS_RW_INTERLEAVED, 2, 48000, 0,
+                15000000)) < 0) { /* 0.5sec */
+            printf("Playback open error: %s\n", snd_strerror(err));
+            exit(EXIT_FAILURE);
+        }
 
-		/* this calls prepare() in the driver - use this to start
-		 * mcpdm downlink
-		 */
-		snd_pcm_sw_params_current(phandle, swparams);
-		snd_pcm_sw_params_set_stop_threshold(phandle, swparams, -1);
-		err = snd_pcm_sw_params(phandle, swparams);
+        /* this calls prepare() in the driver - use this to start
+         * mcpdm downlink
+         */
+        snd_pcm_sw_params_current(phandle, swparams);
+        snd_pcm_sw_params_set_stop_threshold(phandle, swparams, -1);
+        err = snd_pcm_sw_params(phandle, swparams);
 
-		if ((err = snd_pcm_set_params(chandle, SND_PCM_FORMAT_S32_LE,
-				SND_PCM_ACCESS_RW_INTERLEAVED, 2, 48000, 0,
-				15000000)) < 0) { /* 0.5sec */
-			printf("Playback open error: %s\n", snd_strerror(err));
-			exit(EXIT_FAILURE);
-		}
-		snd_pcm_sw_params_current(chandle, swparams);
-		snd_pcm_sw_params_set_stop_threshold(chandle, swparams, -1);
-		err = snd_pcm_sw_params(chandle, swparams);
+        if ((err = snd_pcm_set_params(chandle, SND_PCM_FORMAT_S32_LE,
+                SND_PCM_ACCESS_RW_INTERLEAVED, 2, 48000, 0,
+                15000000)) < 0) { /* 0.5sec */
+            printf("Playback open error: %s\n", snd_strerror(err));
+            exit(EXIT_FAILURE);
+        }
+        snd_pcm_sw_params_current(chandle, swparams);
+        snd_pcm_sw_params_set_stop_threshold(chandle, swparams, -1);
+        err = snd_pcm_sw_params(chandle, swparams);
 
-		/* this cals trigger() in the driver - use this to start
-		 * mcpdm uplink
-		 */
-		snd_pcm_start(phandle);
-		snd_pcm_start(chandle);
+        /* this cals trigger() in the driver - use this to start
+         * mcpdm uplink
+         */
+        snd_pcm_start(phandle);
+        snd_pcm_start(chandle);
 
-		fm_aud_enable = 1;
-	}
-	else {
-		snd_pcm_drop(phandle);
-		snd_pcm_drop(chandle);
+        fm_aud_enable = 1;
+    }
+    else {
+        snd_pcm_drop(phandle);
+        snd_pcm_drop(chandle);
 
-		/* shutdown the pcm link */
-		snd_pcm_close(phandle);
-		snd_pcm_close(chandle);
+        /* shutdown the pcm link */
+        snd_pcm_close(phandle);
+        snd_pcm_close(chandle);
 
-		fm_aud_enable = 0;
-	}
+        fm_aud_enable = 0;
+    }
 
-	printf("FM RX Audio Routing Done\n");
-	return 0;
+    printf("FM RX Audio Routing Done\n");
+    return 0;
 }
 int fmapp_get_rx_rssi_lvl(void)
 {
-	struct v4l2_tuner vtun;
-	float rssi_lvl;
-	int res;
+    struct v4l2_tuner vtun;
+    float rssi_lvl;
+    int res;
 
-	vtun.index = 0;
-	res = ioctl(g_radio_fd, VIDIOC_G_TUNER, &vtun);
-	if(res < 0)
-	{
-		printf("Failed to get tunner attributes\n");
-		return res;
-	}
-	rssi_lvl = ((float)vtun.signal / 0xFFFF) * 100;
-	printf("Signal Strength: %d%%\n",(unsigned int)rssi_lvl);
+    vtun.index = 0;
+    res = ioctl(g_radio_fd, VIDIOC_G_TUNER, &vtun);
+    if(res < 0)
+    {
+        printf("Failed to get tunner attributes\n");
+        return res;
+    }
+    rssi_lvl = ((float)vtun.signal / 0xFFFF) * 100;
+    printf("Signal Strength: %d%%\n",(unsigned int)rssi_lvl);
 
-	return 0;
+    return 0;
 }
 int fmapp_set_stereo_mono_mode(void)
 {
-	struct v4l2_tuner vtun;
-	int res = 0;
+    struct v4l2_tuner vtun;
+    int res = 0;
 
-	vtun.index = 0;
-	res = ioctl(g_radio_fd, VIDIOC_G_TUNER, &vtun);
-	if(res < 0)
-	{
-		printf("Failed to set stereo-mono mode\n");
-		return res;
-	}
+    vtun.index = 0;
+    res = ioctl(g_radio_fd, VIDIOC_G_TUNER, &vtun);
+    if(res < 0)
+    {
+        printf("Failed to set stereo-mono mode\n");
+        return res;
+    }
 
-	if(V4L2_TUNER_MODE_STEREO == vtun.audmode)
-		vtun.audmode = V4L2_TUNER_MODE_MONO;
-	else
-		vtun.audmode = V4L2_TUNER_MODE_STEREO;
+    if(V4L2_TUNER_MODE_STEREO == vtun.audmode)
+        vtun.audmode = V4L2_TUNER_MODE_MONO;
+    else
+        vtun.audmode = V4L2_TUNER_MODE_STEREO;
 
-	res = ioctl(g_radio_fd, VIDIOC_S_TUNER, &vtun);
-	if(res < 0)
-	{
-		printf("Failed to set stereo-mono mode\n");
-		return res;
-	}
-	printf("Audio Mode set to: %s\n",(vtun.audmode == V4L2_TUNER_MODE_STEREO) ? "STEREO":"MONO");
+    res = ioctl(g_radio_fd, VIDIOC_S_TUNER, &vtun);
+    if(res < 0)
+    {
+        printf("Failed to set stereo-mono mode\n");
+        return res;
+    }
+    printf("Audio Mode set to: %s\n",(vtun.audmode == V4L2_TUNER_MODE_STEREO) ? "STEREO":"MONO");
 
-	return 0;
+    return 0;
 }
 int fmapp_get_stereo_mono_mode(void)
 {
-	struct v4l2_tuner vtun;
-	int res;
+    struct v4l2_tuner vtun;
+    int res;
 
-	vtun.index = 0;
-	res = ioctl(g_radio_fd, VIDIOC_G_TUNER, &vtun);
-	if(res < 0)
-	{
-		printf("Failed to get tunner attributes\n");
-		return res;
-	}
-	printf("Audio Mode: %s\n",(vtun.audmode == V4L2_TUNER_MODE_STEREO) ? "STEREO":"MONO");
+    vtun.index = 0;
+    res = ioctl(g_radio_fd, VIDIOC_G_TUNER, &vtun);
+    if(res < 0)
+    {
+        printf("Failed to get tunner attributes\n");
+        return res;
+    }
+    printf("Audio Mode: %s\n",(vtun.audmode == V4L2_TUNER_MODE_STEREO) ? "STEREO":"MONO");
 
-	return 0;
+    return 0;
 }
 int fmapp_get_rx_tunner_attributes(void)
 {
@@ -690,8 +829,8 @@ int fmapp_get_scan_valid_frequencies(void)
     vtun.index = 0;
     ret = ioctl(g_radio_fd, VIDIOC_G_TUNER, &vtun); /* get frequency range */
     if (ret < 0) {
-	printf("Failed to get frequency range");
-	return ret;
+    printf("Failed to get frequency range");
+    return ret;
     }
     freq_multiplicator = (62.5 * ((vtun.capability & V4L2_TUNER_CAP_LOW)
                               ? 1 : 1000));
@@ -714,29 +853,29 @@ int fmapp_get_scan_valid_frequencies(void)
    printf("Auto Scanning..\n");
    for(freq=start_frq;freq<=end_frq;freq+=0.1)
    {
-	vf.tuner = 0;
-	vf.frequency = rint(freq*1000);
-	ret = ioctl(g_radio_fd, VIDIOC_S_FREQUENCY, &vf);	/* tune */
+    vf.tuner = 0;
+    vf.frequency = rint(freq*1000);
+    ret = ioctl(g_radio_fd, VIDIOC_S_FREQUENCY, &vf);    /* tune */
         if (ret < 0) {
-		printf("failed to set freq");
-		return ret;
-	}
-	totsig = 0;
-	for(index=0;index<FMAPP_ASCAN_NO_OF_SIGNAL_SAMPLE;index++)
-	{
-		vtun.index = 0;
-		ret = ioctl(g_radio_fd, VIDIOC_G_TUNER, &vtun);	/* get info */
-		if (ret < 0) {
-			printf("Failed to get frequency range");
-			return ret;
-		}
-		totsig += vtun.signal;
-		perc = (totsig / (65535.0 * index));
-		usleep(1);
+        printf("failed to set freq");
+        return ret;
+    }
+    totsig = 0;
+    for(index=0;index<FMAPP_ASCAN_NO_OF_SIGNAL_SAMPLE;index++)
+    {
+        vtun.index = 0;
+        ret = ioctl(g_radio_fd, VIDIOC_G_TUNER, &vtun);    /* get info */
+        if (ret < 0) {
+            printf("Failed to get frequency range");
+            return ret;
         }
-	perc = (totsig / (65535.0 * FMAPP_ASCAN_NO_OF_SIGNAL_SAMPLE));
-	if ((perc*100.0) > threshold)
-	   printf("%2.1f MHz(%d%%)\n",freq,((unsigned short)(perc * 100.0)));
+        totsig += vtun.signal;
+        perc = (totsig / (65535.0 * index));
+        usleep(1);
+        }
+    perc = (totsig / (65535.0 * FMAPP_ASCAN_NO_OF_SIGNAL_SAMPLE));
+    if ((perc*100.0) > threshold)
+       printf("%2.1f MHz(%d%%)\n",freq,((unsigned short)(perc * 100.0)));
    }
    /* Disable Mute */
    vctrl.id = V4L2_CID_AUDIO_MUTE;
@@ -752,19 +891,19 @@ int fmapp_get_scan_valid_frequencies(void)
 }
 int fmapp_get_rds_onoff(void)
 {
-	struct v4l2_tuner vtun;
-	int res = 0;
+    struct v4l2_tuner vtun;
+    int res = 0;
 
-	vtun.index = 0;
-	res = ioctl(g_radio_fd, VIDIOC_G_TUNER, &vtun);
-	if(res < 0)
-	{
-		printf("Failed to read RDS state\n");
-		return res;
-	}
-	printf("RDS is: %s\n",(vtun.rxsubchans & V4L2_TUNER_SUB_RDS) ? "ON":"OFF");
+    vtun.index = 0;
+    res = ioctl(g_radio_fd, VIDIOC_G_TUNER, &vtun);
+    if(res < 0)
+    {
+        printf("Failed to read RDS state\n");
+        return res;
+    }
+    printf("RDS is: %s\n",(vtun.rxsubchans & V4L2_TUNER_SUB_RDS) ? "ON":"OFF");
 
-	return 0;
+    return 0;
 }
 void fmapp_rds_decode(int blkno, int byte1, int byte2)
 {
@@ -777,47 +916,47 @@ void fmapp_rds_decode(int blkno, int byte1, int byte2)
     case 0: /* Block A */
         printf("----------------------------------------\n");
         printf("block A - id=%d\n",(byte1 << 8) | byte2);
-	break;
+    break;
     case 1: /* Block B */
-	printf("block B - group=%d%c tp=%d pty=%d spare=%d\n",
-		    (byte1 >> 4) & 0x0f,
-		    ((byte1 >> 3) & 0x01) + 'A',
-		    (byte1 >> 2) & 0x01,
-		    ((byte1 << 3) & 0x18) | ((byte2 >> 5) & 0x07),
-		    byte2 & 0x1f);
-	group = (byte1 >> 3) & 0x1f;
-	spare = byte2 & 0x1f;
-	rds_pty = ((byte1 << 3) & 0x18) | ((byte2 >> 5) & 0x07);
+    printf("block B - group=%d%c tp=%d pty=%d spare=%d\n",
+            (byte1 >> 4) & 0x0f,
+            ((byte1 >> 3) & 0x01) + 'A',
+            (byte1 >> 2) & 0x01,
+            ((byte1 << 3) & 0x18) | ((byte2 >> 5) & 0x07),
+            byte2 & 0x1f);
+    group = (byte1 >> 3) & 0x1f;
+    spare = byte2 & 0x1f;
+    rds_pty = ((byte1 << 3) & 0x18) | ((byte2 >> 5) & 0x07);
         ms_code = (byte2 >> 3)& 0x1;
-	break;
+    break;
     case 2: /* Block C */
         printf("block C - 0x%02x 0x%02x\n",byte1,byte2);
-	blkc_byte1 = byte1;
-	blkc_byte2 = byte2;
-	break;
+    blkc_byte1 = byte1;
+    blkc_byte2 = byte2;
+    break;
     case 3 : /* Block D */
-	printf("block D - 0x%02x 0x%02x\n",byte1,byte2);
-	switch (group) {
-	case 0: /* Group 0A */
-	    rds_psn[2*(spare & 0x03)+0] = byte1;
-	    rds_psn[2*(spare & 0x03)+1] = byte2;
-	    if ((spare & 0x03) == 0x03)
-		    printf("PSN: %s, PTY: %s, MS: %s\n",rds_psn,
+    printf("block D - 0x%02x 0x%02x\n",byte1,byte2);
+    switch (group) {
+    case 0: /* Group 0A */
+        rds_psn[2*(spare & 0x03)+0] = byte1;
+        rds_psn[2*(spare & 0x03)+1] = byte2;
+        if ((spare & 0x03) == 0x03)
+            printf("PSN: %s, PTY: %s, MS: %s\n",rds_psn,
                             pty_str[rds_pty],ms_code?"Music":"Speech");
-	    break;
-	case 4: /* Group 2A */
-	    rds_txt[4*(spare & 0x0f)+0] = blkc_byte1;
-	    rds_txt[4*(spare & 0x0f)+1] = blkc_byte2;
-	    rds_txt[4*(spare & 0x0f)+2] = byte1;
-	    rds_txt[4*(spare & 0x0f)+3] = byte2;
+        break;
+    case 4: /* Group 2A */
+        rds_txt[4*(spare & 0x0f)+0] = blkc_byte1;
+        rds_txt[4*(spare & 0x0f)+1] = blkc_byte2;
+        rds_txt[4*(spare & 0x0f)+2] = byte1;
+        rds_txt[4*(spare & 0x0f)+3] = byte2;
             /* Display radio text once we get 16 characters */
-//	    if ((spare & 0x0f) == 0x0f)
-	    if (spare > 16)
+//        if ((spare & 0x0f) == 0x0f)
+        if (spare > 16)
             {
-	        printf("Radio Text: %s\n",rds_txt);
+            printf("Radio Text: %s\n",rds_txt);
 //              memset(&rds_txt,0,sizeof(rds_txt));
             }
-	    break;
+        break;
          }
          printf("----------------------------------------\n");
          break;
@@ -851,62 +990,62 @@ void *rds_thread(void *data)
 }
 int fmapp_set_rds_onoff(unsigned char fmapp_mode)
 {
-	struct v4l2_tuner vtun;
-	int ret;
-	static unsigned char rds_mode = FM_RDS_DISABLE;
+    struct v4l2_tuner vtun;
+    int ret;
+    static unsigned char rds_mode = FM_RDS_DISABLE;
 
-	vtun.index = 0;
-	ret = ioctl(g_radio_fd, VIDIOC_G_TUNER, &vtun);
-	if(ret < 0)
-	{
-		printf("Failed to set rds on/off status\n");
-		return ret;
-	}
-	if(rds_mode == FM_RDS_DISABLE) {
-		vtun.rxsubchans |= V4L2_TUNER_SUB_RDS;
-		rds_mode = FM_RDS_ENABLE;
-	} else {
-		vtun.rxsubchans &= ~V4L2_TUNER_SUB_RDS;
-		rds_mode = FM_RDS_DISABLE;
-	}
+    vtun.index = 0;
+    ret = ioctl(g_radio_fd, VIDIOC_G_TUNER, &vtun);
+    if(ret < 0)
+    {
+        printf("Failed to set rds on/off status\n");
+        return ret;
+    }
+    if(rds_mode == FM_RDS_DISABLE) {
+        vtun.rxsubchans |= V4L2_TUNER_SUB_RDS;
+        rds_mode = FM_RDS_ENABLE;
+    } else {
+        vtun.rxsubchans &= ~V4L2_TUNER_SUB_RDS;
+        rds_mode = FM_RDS_DISABLE;
+    }
 
-	ret = ioctl(g_radio_fd, VIDIOC_S_TUNER, &vtun);
-	if(ret < 0)
-	{
-		printf("Failed to set rds on/off status\n");
-		return ret;
-	}
-	/* Create rds receive thread once */
-	if(fmapp_mode == FM_MODE_RX && rds_mode == FM_RDS_ENABLE &&
-		g_rds_thread_running == 0)
-	{
-		g_rds_thread_running = 1;
-		pthread_create(&g_rds_thread_ptr,NULL,rds_thread,(void *)g_radio_fd);
-	}
+    ret = ioctl(g_radio_fd, VIDIOC_S_TUNER, &vtun);
+    if(ret < 0)
+    {
+        printf("Failed to set rds on/off status\n");
+        return ret;
+    }
+    /* Create rds receive thread once */
+    if(fmapp_mode == FM_MODE_RX && rds_mode == FM_RDS_ENABLE &&
+        g_rds_thread_running == 0)
+    {
+        g_rds_thread_running = 1;
+        pthread_create(&g_rds_thread_ptr,NULL,rds_thread,(void *)g_radio_fd);
+    }
 
-	printf("RDS %s\n",g_rds_modes[rds_mode]);
-	return 0;
+    printf("RDS %s\n",g_rds_modes[rds_mode]);
+    return 0;
 }
 
 void fmapp_execute_tx_get_command(char *cmd)
 {
-	switch(cmd[0])
-	{
-		case 'f':
-			fmapp_get_tx_frequency();
-			break;
-		case 'e':
-			fmapp_get_premphasis_filter_mode();
-			break;
-		case 'p':
-			fmapp_get_tx_power_level();
-			break;
-		case 'i':
-			fmapp_get_tx_ant_imp();
-			break;
-		default:
-			printf("unknown command; type 'h' for help\n");
-	}
+    switch(cmd[0])
+    {
+        case 'f':
+            fmapp_get_tx_frequency();
+            break;
+        case 'e':
+            fmapp_get_premphasis_filter_mode();
+            break;
+        case 'p':
+            fmapp_get_tx_power_level();
+            break;
+        case 'i':
+            fmapp_get_tx_ant_imp();
+            break;
+        default:
+            printf("unknown command; type 'h' for help\n");
+    }
 
 }
 void fmapp_execute_rx_get_command(char *cmd)
@@ -917,13 +1056,13 @@ void fmapp_execute_rx_get_command(char *cmd)
           fmapp_get_rx_frequency();
           break;
      case 'r':
-	  fmapp_get_rx_rssi_lvl();
+      fmapp_get_rx_rssi_lvl();
           break;
      case 't':
           fmapp_get_rds_onoff();
           break;
      case 'v':
-	  fmapp_get_rx_volume();
+      fmapp_get_rx_volume();
           break;
      case 'm':
           fmapp_get_rx_mute_mode();
@@ -933,17 +1072,17 @@ void fmapp_execute_rx_get_command(char *cmd)
           fmapp_get_band(fm_snd_ctrl);
           break;
      case 'd':
-	  fmapp_get_rfmute(fm_snd_ctrl);
+      fmapp_get_rfmute(fm_snd_ctrl);
           break;
      case 'z':
           fmapp_get_rds_operation_mode(fm_snd_ctrl);
-	  break;
+      break;
      case 'c':
           fmapp_get_rx_af_switch(fm_snd_ctrl);
-	  break;
+      break;
      case '?':
-	  fmapp_get_rx_rssi_threshold(fm_snd_ctrl);
-	  break;
+      fmapp_get_rx_rssi_threshold(fm_snd_ctrl);
+      break;
 #endif
      case 's':
           fmapp_get_stereo_mono_mode();
@@ -954,12 +1093,12 @@ void fmapp_execute_rx_get_command(char *cmd)
           break;
 #endif
      case 'a':
-	  fmapp_get_rx_tunner_attributes();
+      fmapp_get_rx_tunner_attributes();
           break;
 #if 0
      case 'n':
-	  fmapp_get_scan_valid_frequencies();
-	  break;
+      fmapp_get_scan_valid_frequencies();
+      break;
 #endif
      default:
           printf("unknown command; type 'h' for help\n");
@@ -981,23 +1120,23 @@ void fmapp_execute_rx_other_command(char *cmd)
           fmapp_set_rds_onoff(FM_MODE_RX);
           break;
      case '+':
-	  fmapp_rx_increase_volume();
+      fmapp_rx_increase_volume();
           break;
      case '-':
           fmapp_rx_decrease_volume();
           break;
      case 'v':
-	  fmapp_set_rx_volume(cmd+1,FMAPP_INTERACTIVE,0);
-	  break;
+      fmapp_set_rx_volume(cmd+1,FMAPP_INTERACTIVE,0);
+      break;
      case 'm':
           fmapp_set_rx_mute_mode();
           break;
      case '<':
           fmapp_rx_seek(FM_SEARCH_DIRECTION_DOWN);
-	  break;
+      break;
      case '>':
           fmapp_rx_seek(FM_SEARCH_DIRECTION_UP);
-	  break;
+      break;
 #if 0
      case 'b':
           fmapp_set_band(fm_snd_ctrl);
@@ -1008,17 +1147,17 @@ void fmapp_execute_rx_other_command(char *cmd)
           break;
 #if 0
      case 'd':
-	  fmapp_set_rfmute(fm_snd_ctrl);
+      fmapp_set_rfmute(fm_snd_ctrl);
           break;
      case 'z':
-	  fmapp_set_rds_operation_mode(fm_snd_ctrl);
-	  break;
+      fmapp_set_rds_operation_mode(fm_snd_ctrl);
+      break;
      case 'c':
           fmapp_set_rx_af_switch(fm_snd_ctrl);
-	  break;
+      break;
      case '?':
-	  fmapp_set_rx_rssi_threshold(fm_snd_ctrl,cmd+1);
-	  break;
+      fmapp_set_rx_rssi_threshold(fm_snd_ctrl,cmd+1);
+      break;
 #endif
      case 's':
           fmapp_set_stereo_mono_mode();
@@ -1029,102 +1168,114 @@ void fmapp_execute_rx_other_command(char *cmd)
           break;
 #endif
      case 'A':
-	  fmapp_start_audio();
-	  break;
+      fmapp_start_audio();
+      break;
   }
 }
 
 void fmapp_execute_tx_other_command(char *cmd)
 {
-	switch(cmd[0])
-	{
-		case 'f':
-			fmapp_set_tx_frequency(cmd+1);
-			break;
-		case 'e':
-			fmapp_set_premphasis_filter_mode(cmd+1);
-			break;
-		case 'p':
-			fmapp_set_tx_power_level(cmd+1);
-			break;
-		case 'i':
-			fmapp_set_tx_ant_imp(cmd+1);
-			break;
-		case 'h':
-			fmapp_display_tx_menu();
-			break;
-	}
+    switch(cmd[0])
+    {
+        case 'f':
+            fmapp_set_tx_frequency(cmd+1);
+            break;
+        case 'e':
+            fmapp_set_premphasis_filter_mode(cmd+1);
+            break;
+        case 'p':
+            fmapp_set_tx_power_level(cmd+1);
+            break;
+        case 'i':
+            fmapp_set_tx_ant_imp(cmd+1);
+            break;
+        case '1':
+            fmapp_set_tx_rds_radio_text();
+            break;
+        case '2':
+            fmapp_set_tx_rds_radio_ps_name();
+            break;
+        case '3':
+            fmapp_set_tx_rds_radio_pi_code(cmd+1);
+            break;
+        case '4':
+            fmapp_set_tx_rds_radio_pty(cmd+1);
+            break;
+        case 'h':
+            fmapp_display_tx_menu();
+            break;
+    }
 }
 /* Switch to RX mode before accepting user commands for RX */
 void fmapp_execute_rx_command(void)
 {
-	char cmd[100];
-	struct v4l2_tuner vtun;
-	int ret;
+    char cmd[100];
+    struct v4l2_tuner vtun;
+    int ret;
 
-	vtun.index = 0;
-	vtun.audmode = V4L2_TUNER_MODE_STEREO;
-	vtun.rxsubchans = V4L2_TUNER_SUB_RDS;
-	ret = ioctl(g_radio_fd, VIDIOC_S_TUNER, &vtun);
-	if(ret < 0)
-	{
-		printf("Failed to set RX mode\n");
-		return;
-	}
+    vtun.index = 0;
+    vtun.audmode = V4L2_TUNER_MODE_STEREO;
+    vtun.rxsubchans = V4L2_TUNER_SUB_RDS;
+    ret = ioctl(g_radio_fd, VIDIOC_S_TUNER, &vtun);
+    if(ret < 0)
+    {
+        printf("Failed to set RX mode\n");
+        return;
+    }
 
-	printf("Switched to RX menu\n");
-	printf("type 'h' for help\n");
+    printf("Switched to RX menu\n");
+    printf("type 'h' for help\n");
 
-	while(1)
-	{
-		fgets(cmd, sizeof(cmd), stdin);
-		switch(cmd[0]) {
-		case 'g':
-			fmapp_execute_rx_get_command(cmd+1);
-			break;
-		case 'q':
-			printf("quiting RX menu\n");
-			return;
-		default:
-			fmapp_execute_rx_other_command(cmd);
-			break;
-		}
-	}
+    while(1)
+    {
+        fgets(cmd, sizeof(cmd), stdin);
+        switch(cmd[0]) {
+        case 'g':
+            fmapp_execute_rx_get_command(cmd+1);
+            break;
+        case 'q':
+            printf("quiting RX menu\n");
+            return;
+        default:
+            fmapp_execute_rx_other_command(cmd);
+            break;
+        }
+    }
 }
 void fmapp_execute_tx_command(void)
 {
-	char cmd[100];
-	struct v4l2_modulator vmod;
-	int ret;
+    char cmd[100];
+    struct v4l2_modulator vmod;
+    int ret;
 
-	vmod.index = 0;
-	vmod.txsubchans = V4L2_TUNER_SUB_STEREO;
+    vmod.index = 0;
+    vmod.txsubchans = V4L2_TUNER_SUB_STEREO | V4L2_TUNER_SUB_RDS;
 
-	ret = ioctl(g_radio_fd, VIDIOC_S_MODULATOR, &vmod);
-	if(ret < 0)
-	{
-		printf("Failed to set TX mode\n");
-		return;
-	}
+    ret = ioctl(g_radio_fd, VIDIOC_S_MODULATOR, &vmod);
+    if(ret < 0)
+    {
+        printf("Failed to set TX mode\n");
+        return;
+    }
 
-	printf("Switched to TX menu\n");
-	printf("type 'h' for help\n");
+    printf("Switched to TX menu\n");
+    printf("type 'h' for help\n");
 
-	while(1)
-	{
-		fgets(cmd, sizeof(cmd), stdin);
-		switch(cmd[0]) {
-		case 'g':
-			fmapp_execute_tx_get_command(cmd+1);
-			break;
-		case 'q':
-			printf("quiting TX menu\n");
-			return;
-		default:
-			fmapp_execute_tx_other_command(cmd);
-			break;
-		}
-	}
+    while(1)
+    {
+        fgets(cmd, sizeof(cmd), stdin);
+        switch(cmd[0]) {
+        case 'g':
+            fmapp_execute_tx_get_command(cmd+1);
+            break;
+        case 'q':
+            printf("quiting TX menu\n");
+            return;
+        default:
+            fmapp_execute_tx_other_command(cmd);
+            break;
+        }
+    }
 }
 
 int fmapp_read_anddisplay_capabilities(void)
@@ -1199,23 +1350,23 @@ int main()
 
        switch(atoi(choice))
        {
-	       case 1: /* FM RX */
-		       fmapp_execute_rx_command();
-		       break;
-	       case 2: /* FM TX */
-		       fmapp_execute_tx_command();
-		       break;
-	       case 3:
-		       printf("Terminating..\n\n");
-		       exit_flag = 0;
-		       break;
-	       default:
-		       printf("Invalid choice , try again\n");
-		       continue;
+           case 1: /* FM RX */
+               fmapp_execute_rx_command();
+               break;
+           case 2: /* FM TX */
+               fmapp_execute_tx_command();
+               break;
+           case 3:
+               printf("Terminating..\n\n");
+               exit_flag = 0;
+               break;
+           default:
+               printf("Invalid choice , try again\n");
+               continue;
        }
    }
    if(g_rds_thread_running)
-	   g_rds_thread_terminate = 1; // Terminate RDS thread
+       g_rds_thread_terminate = 1; // Terminate RDS thread
 
    if (fm_aud_enable == 1){
       snd_pcm_drop(phandle);

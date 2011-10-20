@@ -26,7 +26,7 @@
 #define CTL_INDEX_0                0
 #define CTL_INDEX_1                1
 
-#define FMAPP_BATCH		   0
+#define FMAPP_BATCH                0
 #define FMAPP_INTERACTIVE          1
 
 #define FM_MUTE_ON                 0
@@ -37,9 +37,9 @@
 #define FM_SEARCH_DIRECTION_UP     1
 
 #define FM_MODE_SWITCH_CTL_NAME   "Mode Switch"
-#define FM_MODE_OFF		   0
-#define FM_MODE_TX		   1
-#define FM_MODE_RX	           2
+#define FM_MODE_OFF              0
+#define FM_MODE_TX               1
+#define FM_MODE_RX               2
 
 #define FM_BAND_SWITCH_CTL_NAME    "Region Switch"
 #define FM_BAND_EUROPE_US          0
@@ -49,28 +49,28 @@
 #define FM_RX_RF_DEPENDENT_MUTE_ON        1
 #define FM_RX_RF_DEPENDENT_MUTE_OFF       0
 
-#define FM_RX_GET_RSSI_LVL_CTL_NAME 	  "RSSI Level"
+#define FM_RX_GET_RSSI_LVL_CTL_NAME       "RSSI Level"
 #define FM_RX_RSSI_THRESHOLD_LVL_CTL_NAME "RSSI Threshold"
 
-#define FM_STEREO_MONO_CTL_NAME	          "Stereo/Mono"
+#define FM_STEREO_MONO_CTL_NAME              "Stereo/Mono"
 #define FM_STEREO_MODE                    0
 #define FM_MONO_MODE                      1
 
-#define FM_RX_DEEMPHASIS_CTL_NAME    	  "De-emphasis Filter"
+#define FM_RX_DEEMPHASIS_CTL_NAME          "De-emphasis Filter"
 #define FM_RX_EMPHASIS_FILTER_50_USEC     0
 #define FM_RX_EMPHASIS_FILTER_75_USEC     1
 
-#define FM_RDS_SWITCH_CTL_NAME    	  "RDS Switch"
+#define FM_RDS_SWITCH_CTL_NAME          "RDS Switch"
 #define FM_RDS_DISABLE                    0
 #define FM_RDS_ENABLE                     1
 
-#define FM_RX_RDS_OPMODE_CTL_NAME	  "RDS Operation Mode"
+#define FM_RX_RDS_OPMODE_CTL_NAME      "RDS Operation Mode"
 #define FM_RDS_SYSTEM_RDS                  0
 #define FM_RDS_SYSTEM_RBDS                 1
 
-#define FM_RX_AF_SWITCH_CTL_NAME	  "AF Switch"
-#define FM_RX_RDS_AF_SWITCH_MODE_ON	   1
-#define FM_RX_RDS_AF_SWITCH_MODE_OFF	   0
+#define FM_RX_AF_SWITCH_CTL_NAME      "AF Switch"
+#define FM_RX_RDS_AF_SWITCH_MODE_ON        1
+#define FM_RX_RDS_AF_SWITCH_MODE_OFF       0
 
 /* Auto scan info */
 #define  FMAPP_ASCAN_SIGNAL_THRESHOLD_PER  50 /* 50 % */
@@ -95,11 +95,41 @@ enum v4l2_preemphasis {
         V4L2_PREEMPHASIS_75_uS          = 2,
 };
 
+#define V4L2_CID_RDS_TX_DEVIATION               (V4L2_CID_FM_TX_CLASS_BASE + 1)
+#define V4L2_CID_RDS_TX_PI                      (V4L2_CID_FM_TX_CLASS_BASE + 2)
+#define V4L2_CID_RDS_TX_PTY                     (V4L2_CID_FM_TX_CLASS_BASE + 3)
+#define V4L2_CID_RDS_TX_PS_NAME                 (V4L2_CID_FM_TX_CLASS_BASE + 5)
+#define V4L2_CID_RDS_TX_RADIO_TEXT              (V4L2_CID_FM_TX_CLASS_BASE + 6)
+
 #define V4L2_CID_TUNE_POWER_LEVEL               (V4L2_CID_FM_TX_CLASS_BASE + 113)
 #define V4L2_CID_TUNE_ANTENNA_CAPACITOR         (V4L2_CID_FM_TX_CLASS_BASE + 114)
 #define V4L2_TUNER_SUB_RDS              0x0010
 
+/* Following macros and structs are re-declared since android
+file system has old videodev2.h but kfmapp needs new K35 videodev2.h
+declarations, So need to remove these definitions once android headers
+move to K35 plus */
 #undef VIDIOC_S_MODULATOR
-#define VIDIOC_S_MODULATOR	1078220343
+#define VIDIOC_S_MODULATOR    1078220343
+
+struct v4l2_ext_control_kfmapp {
+        __u32 id;
+        __u32 size;
+        __u32 reserved2[1];
+        union {
+                __s32 value;
+                __s64 value64;
+                char *string;
+        };
+} __attribute__ ((packed));
+
+struct v4l2_ext_controls_kfmapp {
+        __u32 ctrl_class;
+        __u32 count;
+        __u32 error_idx;
+        __u32 reserved[2];
+        struct v4l2_ext_control_kfmapp *controls;
+};
+
 #endif
 
