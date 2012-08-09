@@ -51,6 +51,7 @@ public class connect extends Activity {
         public void onReceive(Context context, Intent intent) {
         //if(DEBUG)
             // Log.e(TAG, " mSCOHeadsetAudioState--->onReceive");
+        Intent noisyIntent = new Intent(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
 
         int state = intent.getIntExtra(AudioManager.EXTRA_SCO_AUDIO_STATE, -1);
 
@@ -58,6 +59,7 @@ public class connect extends Activity {
             DisplayToast("BT SCO Music is now enabled. Play song in Media Player");
         } else if (state == AudioManager.SCO_AUDIO_STATE_DISCONNECTED) {
             DisplayToast("BT SCO Music is now disabled");
+            mContext.sendBroadcast(noisyIntent);
         }
        }
   };
