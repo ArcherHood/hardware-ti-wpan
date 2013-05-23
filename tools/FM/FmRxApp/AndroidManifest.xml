@@ -58,12 +58,5 @@
              <category android:name="android.intent.category.DEFAULT" />
     		</intent-filter>
 		</activity>
-    <activity android:name=".FmPresetList"
-		    	  android:label="@string/stations">
-    		<intent-filter>
-             <action android:name="android.intent.action.PRESET" />
-             <category android:name="android.intent.category.DEFAULT" />
-    		</intent-filter>
-		</activity>
     </application>
 </manifest>
